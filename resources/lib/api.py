@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
+import sys
 from os import remove
 from os.path import join
 
