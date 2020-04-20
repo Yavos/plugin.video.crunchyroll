@@ -15,13 +15,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import re
 import ssl
 import time
 import inputstreamhelper
-try:
-    from urllib2 import URLError
-except ImportError:
+
+PY3 = sys.version_info.major >= 3
+if PY3:
     from urllib.error import URLError
+else:
+    from urllib2 import URLError
 
 import xbmc
 import xbmcgui
@@ -37,7 +40,7 @@ def showQueue(args):
     # api request
     payload = {"media_types": "anime|drama",
                "fields":      "media.name,media.media_id,media.collection_id,media.collection_name,media.description,media.episode_number,media.created, \
-                               media.screenshot_image,media.premium_only,media.premium_available,media.available,media.premium_available,media.duration, \
+                               media.screenshot_image,media.premium_only,media.premium_available,media.available,media.premium_available_time,media.duration, \
                                series.series_id,series.year,series.publisher_name,series.rating,series.genres,series.landscape_image"}
     req = api.request(args, "queue", payload)
 
@@ -49,35 +52,53 @@ def showQueue(args):
 
     # display media
     for item in req["data"]:
-        # video no longer available
+        # skip if video no longer available
         if not ("most_likely_media" in item and "series" in item and item["most_likely_media"]["available"] and item["most_likely_media"]["premium_available"]):
+            continue
+        # skip if video not available yet and no last watched video available
+        if not (parseIsoTime(item["most_likely_media"]["premium_available_time"]) <= time.time() or "last_watched_media" in item and item["last_watched_media"] is not None):
             continue
 
         # add to view
+        media = item["most_likely_media"] if parseIsoTime(item["most_likely_media"]["premium_available_time"]) <= time.time() else item["last_watched_media"]
         view.add_item(args,
-                      {"title":         item["most_likely_media"]["collection_name"] + " #" + item["most_likely_media"]["episode_number"] + " - " + item["most_likely_media"]["name"],
-                       "tvshowtitle":   item["most_likely_media"]["collection_name"],
-                       "duration":      item["most_likely_media"]["duration"],
-                       "playcount":     1 if (100/(float(item["most_likely_media"]["duration"])+1))*int(item["playhead"]) > 90 else 0,
-                       "episode":       item["most_likely_media"]["episode_number"],
-                       "episode_id":    item["most_likely_media"]["media_id"],
-                       "collection_id": item["most_likely_media"]["collection_id"],
+                      {"title":         media["collection_name"] + " #" + media["episode_number"] + " - " + media["name"],
+                       "tvshowtitle":   media["collection_name"],
+                       "duration":      media["duration"],
+                       "playcount":     1 if (100/(float(media["duration"])+1))*int(item["playhead"]) > 90 else 0,
+                       "episode":       media["episode_number"],
+                       "episode_id":    media["media_id"],
+                       "collection_id": media["collection_id"],
                        "series_id":     item["series"]["series_id"],
-                       "plot":          item["most_likely_media"]["description"],
-                       "plotoutline":   item["most_likely_media"]["description"],
+                       "plot":          media["description"],
+                       "plotoutline":   media["description"],
                        "genre":         ", ".join(item["series"]["genres"]),
                        "year":          item["series"]["year"],
-                       "aired":         item["most_likely_media"]["created"][:10],
-                       "premiered":     item["most_likely_media"]["created"][:10],
+                       "aired":         media["created"][:10],
+                       "premiered":     media["created"][:10],
                        "studio":        item["series"]["publisher_name"],
                        "rating":        int(item["series"]["rating"])/10.0,
-                       "thumb":         (item["most_likely_media"]["screenshot_image"]["fwidestar_url"] if item["most_likely_media"]["premium_only"] else item["most_likely_media"]["screenshot_image"]["full_url"]) if item["most_likely_media"]["screenshot_image"] else "",
+                       "thumb":         (media["screenshot_image"]["fwidestar_url"] if media["premium_only"] else media["screenshot_image"]["full_url"]) if media["screenshot_image"] else "",
                        "fanart":        item["series"]["landscape_image"]["full_url"],
                        "mode":          "videoplay"},
                       isFolder=False)
 
     view.endofdirectory(args)
     return True
+
+
+def parseIsoTime(isotime):
+    # isotime is given in format: 2016-04-03T11:40:00-07:00 aka YYYY-MM-DDThh:mm:ssTZD
+    # get time without TZD part
+    t = time.mktime(time.strptime(isotime[:19], "%Y-%m-%dT%H:%M:%S"))
+    # handle TZD part
+    h = int(isotime[19:22])
+    m = int(isotime[23:25])
+    if h > 0:
+        t = t - h * 60 * 60 - m * 60
+    else:
+        t = t - h * 60 * 60 + m * 60
+    return t
 
 
 def searchAnime(args):

@@ -18,18 +18,17 @@
 import json
 from os import remove
 from os.path import join
-try:
-    from urllib import urlencode
-except ImportError:
+
+PY3 = sys.version_info.major >= 3
+if PY3:
     from urllib.parse import urlencode
-try:
-    from urllib2 import urlopen, build_opener, HTTPCookieProcessor, install_opener
-except ImportError:
     from urllib.request import urlopen, build_opener, HTTPCookieProcessor, install_opener
-try:
-    from cookielib import LWPCookieJar
-except ImportError:
+    from urllib.error import HTTPError
     from http.cookiejar import LWPCookieJar
+else:
+    from urllib import urlencode
+    from urllib2 import urlopen, build_opener, HTTPCookieProcessor, install_opener, HTTPError
+    from cookielib import LWPCookieJar
 
 import xbmc
 
@@ -153,7 +152,12 @@ def request(args, method, options, failed=False):
 
     # send payload
     url = API.URL + method + ".0.json"
-    response = urlopen(url, payload.encode("utf-8"))
+    try:
+        response = urlopen(url, payload.encode("utf-8"))
+    except HTTPError as e:
+        xbmc.log("[PLUGIN] %s: HTTP error %s: %s" % (args._addonname, e.code, e.reason), xbmc.LOGERROR)
+        xbmcgui.Dialog().notification(args._addonname, "HTTP error %s: %s" % (e.code, e.reason), xbmcgui.NOTIFICATION_ERROR)
+        return {'error': ''}
 
     # parse response
     json_data = response.read().decode("utf-8")
