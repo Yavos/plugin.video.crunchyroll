@@ -372,8 +372,8 @@ class SeasonData(ListableItem):
         super().__init__()
 
         self.id = data.get("id")
-        settings = xbmcaddon.Addon(id=re.sub(r"^plugin://([^/]+)/.*$", r"\1", sys.argv[0])).getSettings()
-        if settings.getBool("show_lang_in_seasons"):
+        from default import _settings
+        if _settings.getBool("show_lang_in_seasons"):
             self.title: str = '[' + data.get("audio_locale") + '] ' + data.get("title")
         else:
             self.title: str = data.get("title")
