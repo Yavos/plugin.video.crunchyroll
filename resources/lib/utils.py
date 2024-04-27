@@ -278,14 +278,16 @@ def format_long_episode_title(season_title: str, season_number: int, episode_num
     """
     from default import _settings
     if _settings.getBool("linebreak_series_episode"):
-        return season_title + "[CR][COLOR grey]" /
-            + (("S" + str(season_number) if season_number else "") /
-            + "E" + two_digits(episode_number) if episode_number.isnumeric() else episode_number) / # also omit season on OVAs and other Specials
+        return season_title + "[CR][COLOR grey]" \
+            + (("S" + str(season_number) if season_number else "") \
+            # also omit season on OVAs and other Specials
+            + "E" + two_digits(episode_number) if episode_number is None or str(episode_number).isnumeric() else episode_number) \
             + " - " + title + "[/COLOR]"
     else:
-        return season_title + " " /
-            + (("S" + str(season_number) if season_number else "") /
-            + "E" + two_digits(episode_number) if episode_number.isnumeric() else episode_number) / # also omit season on OVAs and other Specials
+        return season_title + " " \
+            + (("S" + str(season_number) if season_number else "") \
+            # also omit season on OVAs and other Specials
+            + "E" + two_digits(episode_number) if episode_number is None or str(episode_number).isnumeric() else episode_number) \
             + " - " + title
 
 
@@ -293,14 +295,15 @@ def format_short_episode_title(season_number: int, episode_number: int, title: s
     """ sometimes no explicit episode number is given: ['', 'OVA', 'SP']
         sometimes it's a plain number, sometimes it's text
     """
-    return (("S" + str(season_number) if season_number else "") /
-        + "E" + two_digits(episode_number) if episode_number.isnumeric() else episode_number) + " - " + title
+    return (("S" + str(season_number) if season_number else "") \
+        + "E" + two_digits(episode_number) if episode_number is None or str(episode_number).isnumeric() else episode_number) \
+        + (" - " if season_number and episode_number else "") + title
 
 
 def two_digits(n: int):
     if not n:
         return "00"
-    if n < 10:
+    if int(n) < 10:
         return "0" + str(n)
     return str(n)
 
