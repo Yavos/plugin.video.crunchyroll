@@ -105,6 +105,12 @@
                     <default>false</default>
                     <control type="toggle"/>
                 </setting>
+
+                <setting id="linebreak_series_episode" type="boolean" label="30034" help="30035">
+                    <level>0</level>
+                    <default>false</default>
+                    <control type="toggle"/>
+                </setting>
             </group>
         </category>
         <category id="playback_options" label="30220" help="">

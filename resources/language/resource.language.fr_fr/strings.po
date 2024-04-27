@@ -133,6 +133,14 @@ msgctxt "#30037"
 msgid "In an anime seasons view, display a dub tag in front of the season name."
 msgstr "Dans la vue des saisons d'un anime, afficher une étiquette de doublage devant le nom de la saison."
 
+msgctxt "#30034"
+msgid "Add Linebreak between series and episode names"
+msgstr "Ajouter un saut de ligne entre les noms de séries et d'épisodes"
+
+msgctxt "#30035"
+msgid "Makes anime titles take two lines with series in the first and episode title (greyed out) in the second line."
+msgstr "Fait en sorte que les titres d'anime prennent deux lignes avec la série dans la première et le titre de l'épisode (grisé) dans la seconde."
+
 
 # Crunchyroll Menue
 msgctxt "#30040"

@@ -436,7 +436,7 @@ class EpisodeData(PlayableItem):
         meta = panel.get("episode_metadata") or panel
 
         self.id = panel.get("id")
-        self.title: str = utils.format_long_episode_title(meta.get("season_title"), meta.get("episode_number"),
+        self.title: str = utils.format_long_episode_title(meta.get("season_title"), meta.get("season_number"), meta.get("episode_number"),
                                                           panel.get("title"))
         self.tvshowtitle: str = meta.get("series_title", "")
         self.duration: int = int(meta.get("duration_ms", 0) / 1000)

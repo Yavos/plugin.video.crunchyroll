@@ -272,12 +272,17 @@ def filter_seasons(args: Args, item: Dict) -> bool:
     return False
 
 
-def format_long_episode_title(season_title: str, episode_number: str, title: str):
-    return season_title + " #" + str(episode_number) + " - " + title
+def format_long_episode_title(season_title: str, season_number: int, episode_number: int, title: str):
+    import xbmcaddon, sys
+    settings = xbmcaddon.Addon(id=re.sub(r"^plugin://([^/]+)/.*$", r"\1", sys.argv[0])).getSettings()
+    if settings.getBool("linebreak_series_episode"):
+        return season_title + "[CR][COLOR grey]S" + (str(season_number) + "E" if season_number else "") + two_digits(episode_number) + " - " + title + "[/COLOR]"
+    else:
+        return season_title + " S" + (str(season_number) + "E" if season_number else "") + two_digits(episode_number) + " - " + title
 
 
-def format_short_episode_title(season_number: int, episode_number: str, title: str):
-    return (str(season_number) + "x" if season_number else "") + two_digits(episode_number) + ". " + title
+def format_short_episode_title(season_number: int, episode_number: int, title: str):
+    return ("S" + str(season_number) + "E" if season_number else "") + two_digits(episode_number) + " - " + title
 
 
 def two_digits(n):
