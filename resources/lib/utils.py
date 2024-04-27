@@ -282,10 +282,10 @@ def format_long_episode_title(season_title: str, season_number: int, episode_num
 
 
 def format_short_episode_title(season_number: int, episode_number: int, title: str):
-    return ("S" + str(season_number) + "E" if season_number else "") + two_digits(episode_number) + " - " + title
+    return ("S" + str(season_number) + "E" if season_number else "") + two_digits(int(episode_number)) + " - " + title
 
 
-def two_digits(n):
+def two_digits(n: int):
     if not n:
         return "00"
     if n < 10:
