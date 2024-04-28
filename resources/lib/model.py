@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import json
 import re
 import sys
 from abc import abstractmethod
@@ -32,6 +33,7 @@ from json import dumps
 import xbmcaddon
 
 from . import router
+from .globals import G
 
 
 class Args(object):
@@ -149,6 +151,56 @@ class Object(metaclass=Meta):
         return dumps(self, indent=4, default=Object.default, ensure_ascii=False)
 
 
+class Cacheable(Object):
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def get_cache_file_name(self) -> str:
+        pass
+
+    @staticmethod
+    def get_storage_path() -> str:
+        """Get cookie file path
+        """
+        profile_path = xbmcvfs.translatePath(G.args.addon.getAddonInfo("profile"))
+
+        return profile_path
+
+    def load_from_storage(self) -> dict:
+        storage_file = self.get_storage_path() + self.get_cache_file_name()
+
+        if not xbmcvfs.exists(storage_file):
+            return {}
+
+        with xbmcvfs.File(storage_file) as file:
+            data = json.load(file)
+
+        d = dict()
+        d.update(data)
+
+        return d
+
+    def delete_storage(self) -> None:
+        storage_file = self.get_storage_path() + self.get_cache_file_name()
+
+        if not xbmcvfs.exists(storage_file):
+            return None
+
+        xbmcvfs.delete(storage_file)
+
+    def write_to_storage(self) -> bool:
+        storage_file = self.get_storage_path() + self.get_cache_file_name()
+
+        # serialize (Object has a to_str serializer)
+        json_string = str(self)
+
+        with xbmcvfs.File(storage_file, 'w') as file:
+            result = file.write(json_string)
+
+        return result
+
+
 class CMS(Object):
     def __init__(self, data: dict):
         self.bucket: str = data.get("bucket")
@@ -157,8 +209,9 @@ class CMS(Object):
         self.key_pair_id: str = data.get("key_pair_id")
 
 
-class AccountData(Object):
+class AccountData(Cacheable):
     def __init__(self, data: dict):
+        super().__init__()
         self.access_token: str = data.get("access_token")
         self.refresh_token: str = data.get("refresh_token")
         self.expires: str = data.get("expires")
@@ -178,6 +231,9 @@ class AccountData(Object):
         self.default_audio_language: str = data.get("preferred_content_audio_language")
         self.username: str = data.get("username")
 
+    def get_cache_file_name(self) -> str:
+        return 'session_data.json'
+
 
 class ListableItem(Object):
     """ Base object for all DataObjects below that can be displayed in a Kodi List View """
@@ -196,17 +252,17 @@ class ListableItem(Object):
         self.banner: str | None = None
 
     @abstractmethod
-    def get_info(self, args: Args) -> Dict:
+    def get_info(self) -> Dict:
         """ return a dict with info to set on the kodi ListItem (filtered) and access some data """
 
         pass
 
-    def to_item(self, args: Args) -> xbmcgui.ListItem:
+    def to_item(self) -> xbmcgui.ListItem:
         """ Convert ourselves to a Kodi ListItem"""
 
         from resources.lib.view import types
 
-        info = self.get_info(args)
+        info = self.get_info()
         # filter out items not known to kodi
         list_info = {key: info[key] for key in types if key in info}
 
@@ -262,7 +318,7 @@ class ListableItem(Object):
             "thumb": self.thumb or 'DefaultFolder.png',
             'poster': self.poster or self.thumb or 'DefaultFolder.png',
             'banner': self.thumb or 'DefaultFolder.png',
-            'fanart': self.fanart or xbmcvfs.translatePath(args.addon.getAddonInfo('fanart')),
+            'fanart': self.fanart or xbmcvfs.translatePath(G.args.addon.getAddonInfo('fanart')),
             'icon': self.thumb or 'DefaultFolder.png'
         })
 
@@ -289,7 +345,7 @@ class PlayableItem(ListableItem):
         self.playcount: int = 0
 
     @abstractmethod
-    def get_info(self, args: Args) -> Dict:
+    def get_info(self) -> Dict:
         """ return a dict with info to set on the kodi ListItem (filtered) and access some data """
 
         pass
@@ -338,7 +394,7 @@ class SeriesData(ListableItem):
         # @todo: not sure how to get that without checking all child seasons and their episodes
         pass
 
-    def get_info(self, args: Args) -> Dict:
+    def get_info(self) -> Dict:
         # in theory, we could also omit this method and just iterate over the objects properties and use them
         # to set data on the Kodi ListItem, but this way we are decoupled from their naming convention
         return {
@@ -401,7 +457,7 @@ class SeasonData(ListableItem):
         # @todo: not sure how to get that without checking all child episodes
         pass
 
-    def get_info(self, args: Args) -> Dict:
+    def get_info(self) -> Dict:
         return {
             'title': self.title,
             'tvshowtitle': self.tvshowtitle,
@@ -446,7 +502,7 @@ class EpisodeData(PlayableItem):
         self.duration: int = int(meta.get("duration_ms", 0) / 1000)
         self.playhead: int = data.get("playhead", 0)
         self.season: int = meta.get("season_number", 1)
-        self.episode: int = meta.get("episode", 1)
+        self.episode: int = meta.get("episode_number", 1)
         self.episode_id: str | None = panel.get("id")
         self.season_id: str | None = meta.get("season_id")
         self.series_id: str | None = meta.get("series_id")
@@ -469,7 +525,7 @@ class EpisodeData(PlayableItem):
         if self.playhead is not None and self.duration is not None:
             self.playcount = 1 if (int(self.playhead / self.duration * 100)) > 90 else 0
 
-    def get_info(self, args: Args) -> Dict:
+    def get_info(self) -> Dict:
         return {
             'title': self.title,
             'tvshowtitle': self.tvshowtitle,
@@ -541,7 +597,7 @@ class MovieData(PlayableItem):
         if self.playhead is not None and self.duration is not None:
             self.playcount = 1 if (int(self.playhead / self.duration * 100)) > 90 else 0
 
-    def get_info(self, args: Args) -> Dict:
+    def get_info(self) -> Dict:
         return {
             'title': self.title,
             'tvshowtitle': self.tvshowtitle,
@@ -570,6 +626,49 @@ class MovieData(PlayableItem):
             # internally used for routing
             "mode": "videoplay"
         }
+
+
+# @todo: rethink Cacheable inheritance, it's too easy to use the wrong class' properties
+class ProfileData(ListableItem, Cacheable):
+
+    def __init__(self, data: dict):
+        super(ListableItem, self).__init__()
+        Cacheable.__init__(self)
+
+        self.profile_id: str = data.get("profile_id")
+        self.username: str = data.get("username")
+        self.profile_name: str = data.get("profile_name")
+
+        self.account_language: str = data.get("preferred_communication_language")
+        self.default_subtitles_language: str = data.get("preferred_content_subtitle_language")
+        self.default_audio_language: str = data.get("preferred_content_audio_language")
+
+        self.avatar: str = data.get("avatar")
+        self.wallpaper: str = data.get("wallpaper")
+
+    def get_cache_file_name(self) -> str:
+        return 'profile_data.json'
+
+    def get_info(self) -> Dict:
+        return {
+            'profile_id': self.profile_id,
+            'title': self.profile_name,
+            "mode": "profiles_list_with_id",
+        }
+
+    def to_item(self) -> xbmcgui.ListItem:
+        """ Convert ourselves to a Kodi ListItem"""
+
+        from . import utils
+
+        li = xbmcgui.ListItem(label=self.profile_name, label2=self.username)
+        li.setArt({
+            'thumb': utils.get_img_from_static(self.avatar),
+            'fanart': utils.get_img_from_static(self.wallpaper, "wallpaper"),
+            'poster': utils.get_img_from_static(self.wallpaper, "wallpaper")
+        })
+
+        return li
 
 
 class CrunchyrollError(Exception):
