@@ -644,7 +644,7 @@ class ProfileData(ListableItem, Cacheable):
         self.default_audio_language: str = data.get("preferred_content_audio_language")
 
         self.avatar: str = data.get("avatar")
-        self.wallpaper: str = data.get("wallpaper")
+        #self.wallpaper: str = data.get("wallpaper")
 
     def get_cache_file_name(self) -> str:
         return 'profile_data.json'
@@ -664,8 +664,8 @@ class ProfileData(ListableItem, Cacheable):
         li = xbmcgui.ListItem(label=self.profile_name, label2=self.username)
         li.setArt({
             'thumb': utils.get_img_from_static(self.avatar),
-            'fanart': utils.get_img_from_static(self.wallpaper, "wallpaper"),
-            'poster': utils.get_img_from_static(self.wallpaper, "wallpaper")
+            #'fanart': utils.get_img_from_static(self.wallpaper, "wallpaper"),
+            #'poster': utils.get_img_from_static(self.wallpaper, "wallpaper")
         })
 
         return li
