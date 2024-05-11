@@ -26,7 +26,6 @@ import xbmcaddon
 _addon = xbmcaddon.Addon(id=re.sub(r"^plugin://([^/]+)/.*$", r"\1", sys.argv[0]))
 _plugin = _addon.getAddonInfo("name")
 _version = _addon.getAddonInfo("version")
-_settings = _addon.getSettings()
 
 xbmc.log("[PLUGIN] %s: version %s initialized" % (_plugin, _version))
 

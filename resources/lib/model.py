@@ -428,8 +428,7 @@ class SeasonData(ListableItem):
         super().__init__()
 
         self.id = data.get("id")
-        from default import _settings
-        if _settings.getBool("show_lang_in_seasons"):
+        if G.args.addon.getSettings().getBool("show_lang_in_seasons"):
             self.title: str = '[' + data.get("audio_locale") + '] ' + data.get("title")
         else:
             self.title: str = data.get("title")

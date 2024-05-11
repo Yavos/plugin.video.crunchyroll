@@ -271,8 +271,7 @@ def format_long_episode_title(season_title: str, season_number: int, episode_num
     """ sometimes no explicit episode number is given: ['', 'OVA', 'SP']
         sometimes it's a plain number, sometimes it's text
     """
-    from default import _settings
-    if _settings.getBool("linebreak_series_episode"):
+    if G.args.addon.getSettings().getBool("linebreak_series_episode"):
         return season_title + "[CR][COLOR grey]" \
             + (("S" + str(season_number) if season_number else "") \
             # also omit season on OVAs and other Specials
