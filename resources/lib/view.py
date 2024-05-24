@@ -364,6 +364,11 @@ def make_info_label(info) -> dict:
     """Generate info_labels from existing dict
     """
     info_labels = {}
+    
+    # step 0 enable playcount if sync_playtime is enabled
+    if G.args.addon.getSettings().getBool("sync_playtime"):
+        types.append("playcount")
+
     # step 1 copy new information from info
     info_items = list(info.items())
     for key, value in info_items:

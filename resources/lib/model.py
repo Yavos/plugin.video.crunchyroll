@@ -279,7 +279,7 @@ class ListableItem(Object):
             li.setProperty("IsPlayable", "true")
             li_info.setDuration(int(getattr(self, 'duration')))
             # set resume if not fully watched and playhead > x
-            if hasattr(self, 'playcount') and getattr(self, 'playcount') == 0:
+            if G.args.addon.getSettings().getBool("sync_playtime") and "playcount" in list_info and list_info["playcount"] == 0:
                 if hasattr(self, 'playhead') and getattr(self, 'playhead') > 0:
                     resume = int(getattr(self, 'playhead') / getattr(self, 'duration') * 100)
                     if 5 <= resume <= 90:
